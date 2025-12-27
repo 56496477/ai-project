@@ -2,50 +2,91 @@
 
 这是一个基于 React + TypeScript + PixiJS 开发的网页版电子宠物应用，复刻了经典的QQ宠物玩法。
 
-## 功能特性
+## 资源说明
 
-*   **宠物互动**：
-    *   **高度还原的 2D 企鹅形象**：根据经典造型绘制，拥有标志性的圆滚滚身材、蓝围巾和星星配饰。
-    *   支持待机（呼吸）、行走、跳跃、进食、洗澡等动画
-*   **状态管理**：
-    *   **饥饿值**：随时间下降，需要喂食。
-    *   **清洁度**：随时间下降，需要洗澡。
-    *   **心情值**：随时间下降，需要玩耍。
-    *   **健康值**：饥饿或清洁度过低会影响健康。
-    *   **成长系统**：互动增加经验值 (EXP)，经验满后升级。
-*   **数据持久化**：
-    *   宠物状态会自动保存到浏览器的 LocalStorage 中，刷新页面不会丢失进度。
-*   **响应式 UI**：
-    *   适配桌面和移动端。
+- 治病
+  - 打针：`resource/treatment/1.swf`
+  - 吃药：`resource/treatment/2.swf`
+  - 手术: `resource/treatment/3.swf`
 
-## 技术栈
+- 生病
+  - 冷：`resource/sick/1.swf`
 
-*   **前端框架**: React 18
-*   **语言**: TypeScript
-*   **渲染引擎**: PixiJS (@pixi/react)
-*   **构建工具**: Vite
+- 饿
+  - 饿动画1：`resource/eat/7.swf`
 
-## 快速开始
+- 痒
+  - 痒动画1：`resource/clean/2.swf`
 
-### 1. 安装依赖
+- 日常
+  - 挠背：`resource/daily/1.swf`
+  - 往左下看：`resource/daily/2.swf`
+  - 往左上看：`resource/daily/3.swf`
+  - 往左下看：`resource/daily/4.swf`
+  - 往左上看：`resource/daily/5.swf`
+  - 玩耍：`resource/daily/6.swf`
+  - 嘿嘿笑点头：`resource/daily/7.swf`
+  - 撇嘴摇头：`resource/daily/8.swf`
+  - 畏畏缩缩左右看：`resource/daily/9.swf`
+  - 亲你： `resource/daily/10.swf`
+  - 伸手: `resource/daily/11.swf`
+  - 无所谓: `resource/daily/12.swf`
+  - 拎起来：`resource/daily/drag.swf`
+  - 拎起来放下：`resource/daily/drag0.swf`
+  - 往下落: `resource/daily/drop.swf`
+  - 摔倒：`resource/daily/land.swf`
+  - 眨眼睛: `resource/daily/ok.swf`
 
-```bash
-cd web-pet
-npm install --registry=https://registry.npmmirror.com
-```
+- 吃东西
+  - 吃零食：`resource/eat/1.swf`
+  - 吃快餐：`resource/eat/2.swf`
+  - 吃大餐：`resource/eat/3.swf`
+  - 喝水：`resource/eat/4.swf`
+  - 喝咖啡：`resource/eat/5.swf`
+  - 喝冷饮：`resource/eat/6.swf`
 
-### 2. 启动开发服务器
+- 学习
+  - 看书：`resource/study/1.swf`
 
-```bash
-npm run dev
-```
+- 工作
+  - 送邮件：`resource/work/1.swf`
 
-打开浏览器访问显示的本地地址 (通常是 http://localhost:5173)。
+- 心情不好
+  - 喝酒：`resource/sad/1.swf`
 
-### 3. 构建生产版本
+- 清洁身体
+  - 洗澡：`resource/clean/1.swf`
 
-```bash
-npm run build
-```
+- 出生
+  - 破壳：`resource/birth/1.swf`
 
-构建产物位于 `dist` 目录。
+- 出场
+  - 出场动画1：`resource/exit/1.swf`
+  - 出场动画2：`resource/exit/2.swf`
+  - 出场动画3：`resource/exit/3.swf`
+
+- 退场
+  - 退场动画1：`resource/exit/4.swf`
+  - 退场动画2：`resource/exit/5.swf`
+
+- 升级
+  - 升级动画1：`resource/upgrade/1.swf`
+
+- 死掉
+  - 死掉动画1(动态动画)：`resource/dead/1.swf`
+  - 死掉动画2(静态)：`resource/dead/2.swf`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
