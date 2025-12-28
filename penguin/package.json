@@ -9,8 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.23",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.562.0",
+    "postcss": "^8.5.6",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "sass": "^1.97.1",
+    "tailwindcss": "^4.1.18",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
