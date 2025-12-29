@@ -42,6 +42,7 @@ interface GameState {
   // Health Decay State
   lowHungerStartTime: number;
   lowMoodStartTime: number;
+  lastRandomIdleTime: number;
 
   // Actions
   clickEgg: () => void;
@@ -89,6 +90,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   workDuration: 0,
   lowHungerStartTime: 0,
   lowMoodStartTime: 0,
+  lastRandomIdleTime: Date.now(),
 
   currentAnim: RESOURCES.BIRTH.EGG, // Initially just a placeholder or egg image
   animPriority: ANIMATION_PRIORITY.HIGH, // Egg state is high priority
@@ -254,8 +256,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   tick: () => {
-    const { isEgg, workEndTime, workType, lowHungerStartTime, lowMoodStartTime, stats } = get();
+    const { isEgg, workEndTime, workType, lowHungerStartTime, lowMoodStartTime, stats, animPriority, lastRandomIdleTime } = get();
     if (isEgg) return;
+
+    const now = Date.now();
 
     // 0. Check Death
     if (stats.health <= 0) {
@@ -277,7 +281,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // 1. Work/Study Check
     if (workEndTime > 0) {
-      const now = Date.now();
       if (now >= workEndTime) {
         // Work Finished
         
@@ -355,9 +358,45 @@ export const useGameStore = create<GameState>((set, get) => ({
       mood: -1,
     });
     
-    // 3. Health Decay (Sickness Logic)
+    // 3. Random Idle Animation (Every 20s if Idle)
+    // Only trigger if priority is IDLE (not busy doing something else)
+
+    if (animPriority === ANIMATION_PRIORITY.IDLE && workEndTime === 0 && !isEgg) {
+       if (now - lastRandomIdleTime >= 20000) {
+           let availableAnims = [];
+           
+           if (stats.mood >= 70) {
+              // Happy
+              availableAnims = [
+                RESOURCES.DAILY.PLAY, 
+                RESOURCES.DAILY.NOD, 
+                RESOURCES.DAILY.KISS, 
+                RESOURCES.DAILY.HAND
+              ];
+           } else if (stats.mood >= 30) {
+              // Normal
+              availableAnims = [
+                RESOURCES.DAILY.SCRATCH, 
+                RESOURCES.DAILY.LOOK_DL, 
+                RESOURCES.DAILY.LOOK_UL, 
+                RESOURCES.DAILY.IGNORE
+              ];
+           } else {
+              // Sad
+              availableAnims = [
+                RESOURCES.DAILY.SHAKE, 
+                RESOURCES.DAILY.SHY
+              ];
+           }
+           
+           const anim = availableAnims[Math.floor(Math.random() * availableAnims.length)];
+           get().setAnimation(anim, ANIMATION_PRIORITY.LOW, false);
+           set({ lastRandomIdleTime: now });
+       }
+    }
+
+    // 4. Health Decay (Sickness Logic)
     let healthDrop = 0;
-    const now = Date.now();
 
     // Hunger Check
     if (stats.hunger < 20) {
@@ -387,23 +426,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (healthDrop > 0) {
        get().updateStats({ health: -healthDrop });
-    }
-
-    // 4. Random Animations (Idle)
-    const { animPriority } = get();
-    if (animPriority === ANIMATION_PRIORITY.IDLE && Math.random() < 0.1) {
-      const randomAnims = [
-        RESOURCES.DAILY.SCRATCH, RESOURCES.DAILY.LOOK_DL, RESOURCES.DAILY.LOOK_UL,
-        RESOURCES.DAILY.PLAY, RESOURCES.DAILY.NOD, RESOURCES.DAILY.SHAKE,
-        RESOURCES.DAILY.SHY, RESOURCES.DAILY.KISS, RESOURCES.DAILY.HAND
-      ];
-      const randomAnim = randomAnims[Math.floor(Math.random() * randomAnims.length)];
-      get().setAnimation(randomAnim, ANIMATION_PRIORITY.LOW, false);
-      
-      const randomTalks = ["今天天气真不错~", "主人在干什么呢？", "好无聊啊...", "嘿嘿~"];
-      if (Math.random() < 0.3) {
-         get().showDialog(randomTalks[Math.floor(Math.random() * randomTalks.length)]);
-      }
     }
     
     // 5. State Check (Reset Anim if needed)
