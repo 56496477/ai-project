@@ -21,6 +21,8 @@ interface GameState {
   level: number;
   exp: number;
   coins: number;
+  age: number; // In game days
+  gameTime: number; // In game minutes (starts at 0)
   isEgg: boolean;
   eggClicks: number;
 
@@ -77,6 +79,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   level: 1, // Start at level 1 but isEgg=true effectively means level 0 stage
   exp: 0,
   coins: 100, // Initial coins
+  age: 1,
+  gameTime: 0,
   isEgg: true,
   eggClicks: 0,
 
@@ -110,7 +114,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         animPriority: ANIMATION_PRIORITY.HIGH,
         isLooping: false,
       });
-      get().showDialog("你好呀，新世界！");
+      get().showDialog("哇！终于见到主人啦！最喜欢你了~");
     } else {
       set({ eggClicks: newClicks });
       // Could add wobble animation here if we had one
@@ -131,7 +135,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         exp: newExp,
       });
       get().setAnimation(RESOURCES.UPGRADE.LEVEL_UP, ANIMATION_PRIORITY.HIGH, false);
-      get().showDialog("哇！我变强了！");
+      get().showDialog("升级啦！感觉充满了力量！");
     } else {
       set({ exp: newExp });
     }
@@ -147,7 +151,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ coins: coins - amount });
       return true;
     }
-    get().showDialog("金币不够啦！快去打工吧！");
+    get().showDialog("金币不够了呢... 主人带我去打工好不好？");
     return false;
   },
 
@@ -198,7 +202,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         animPriority: ANIMATION_PRIORITY.HIGH, 
         isLooping: true 
       });
-      get().showDialog("哎哟，头好晕...");
+      get().showDialog("呜呜... 头好晕，不舒服...");
       return;
     }
     if (stats.hunger < 20) {
@@ -207,7 +211,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         animPriority: ANIMATION_PRIORITY.HIGH, 
         isLooping: true 
       });
-      get().showDialog("主人，我肚子好饿...");
+      get().showDialog("肚子咕咕叫了... 主人我想吃好吃的~");
       return;
     }
     if (stats.hygiene < 30) {
@@ -216,7 +220,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         animPriority: ANIMATION_PRIORITY.HIGH, 
         isLooping: true 
       });
-      get().showDialog("身上好痒呀！");
+      get().showDialog("身上痒痒的，想洗个香香的澡~");
       return;
     }
 
@@ -257,10 +261,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (stats.health <= 0) {
       if (get().currentAnim !== RESOURCES.DEAD.TOMBSTONE) {
          get().setAnimation(RESOURCES.DEAD.TOMBSTONE, ANIMATION_PRIORITY.MAX, true);
-         get().showDialog("R.I.P.");
+         get().showDialog("...");
       }
       return;
     }
+
+    // Update Game Time & Age
+    // 1 Real Sec = 12 Game Mins
+    const ticks = 1; // tick() is called every ~1s roughly
+    const minsPerTick = 12; 
+    const newGameTime = get().gameTime + minsPerTick;
+    const newAge = Math.floor(newGameTime / (24 * 60)) + 1; // Start at day 1
+    
+    set({ gameTime: newGameTime, age: newAge });
 
     // 1. Work/Study Check
     if (workEndTime > 0) {
@@ -275,21 +288,25 @@ export const useGameStore = create<GameState>((set, get) => ({
         let hungerCost = 0;
         let moodCost = 0;
 
-        // Scaling for seconds: 
-        // Original: 10 coins/min => ~0.16 coins/sec
-        // Let's make it more rewarding for short duration: 0.5 coins/sec
+        // Scaling based on Game Time (10s = 2h)
+        // Work: 15 coins / game hour
+        // Study: Cost 5 coins / game hour, +2 Intel / game hour
+        // Decay: Hunger -5/h, Mood -5/h
         
+        // 10s = 120 game mins = 2 hours
+        const gameHours = (duration * 12) / 60; // duration is sec, * 12 = mins
+
         if (workType === 'work') {
-           const baseWage = 0.5; // per second
-           earnedCoins = Math.floor(baseWage * duration * (1 + stats.intelligence * 0.01));
-           hungerCost = 0.05 * duration;
-           moodCost = 0.05 * duration;
-           earnedExp = Math.ceil(0.5 * duration); 
+           const wagePerHour = 15;
+           earnedCoins = Math.floor(wagePerHour * gameHours * (1 + stats.intelligence * 0.01));
+           hungerCost = 5 * gameHours;
+           moodCost = 5 * gameHours;
+           earnedExp = Math.ceil(5 * gameHours); 
         } else {
            // Study
-           gainedIntel = Math.ceil(0.1 * duration);
-           earnedExp = Math.ceil(0.2 * duration);
-           hungerCost = 0.08 * duration;
+           gainedIntel = Math.ceil(2 * gameHours);
+           earnedExp = Math.ceil(3 * gameHours);
+           hungerCost = 3 * gameHours;
         }
 
         get().addCoins(earnedCoins);
@@ -307,46 +324,35 @@ export const useGameStore = create<GameState>((set, get) => ({
         const returnAnims = [RESOURCES.EXIT.ENTER, RESOURCES.EXIT.ENTER2, RESOURCES.EXIT.ENTER3];
         const randomReturnAnim = returnAnims[Math.floor(Math.random() * returnAnims.length)];
         
-        // Force update animation state to ensure it plays
-        // Reset priority first to ensure MAX priority from work/study doesn't block
-        // Actually, setAnimation with HIGH should override if current is MAX but workEndTime is now 0?
-        // Wait, if currentAnim is HIDDEN (MAX priority), and we set HIGH, it might not override if logic prevents it?
-        // Let's check setAnimation logic or just force it.
-        // Usually setAnimation checks priority. 
-        // We need to ensure the HIDDEN state is cleared.
-        
-        set({ animPriority: ANIMATION_PRIORITY.IDLE }); // Lower priority to allow new anim
+        set({ animPriority: ANIMATION_PRIORITY.IDLE }); 
         get().setAnimation(randomReturnAnim, ANIMATION_PRIORITY.HIGH, false);
         
         if (workType === 'work') {
-            get().showDialog(`打工结束！赚了 ${earnedCoins} 金币`);
+            get().showDialog(`我回来啦！赚到了 ${earnedCoins} 金币，厉害吧！`);
         } else {
-            get().showDialog(`学习结束！智力 +${gainedIntel}`);
+            get().showDialog(`学习完啦！感觉变聪明了呢！(智力 +${gainedIntel})`);
         }
         
         return; 
       } else {
         // Still working
-        // Show countdown in dialog maybe?
-        
         if (Math.random() < 0.1) {
-             get().showDialog(workType === 'work' ? "努力工作中..." : "努力学习中...");
+             get().showDialog(workType === 'work' ? "呼哧呼哧... 加油干活！" : "好好学习... 天天向上...");
         }
         return; // Skip normal tick decay
       }
     }
 
     // 2. Natural Decay (Idle)
-    // Tick is ~10s. 
-    // Hunger -0.5/min => -0.08/tick
-    // Hygiene -0.2/min => -0.03/tick
-    // Mood -0.2/min => -0.03/tick
-    // Let's speed it up slightly for gameplay feel, or stick to doc.
-    // Let's do: Hunger -0.2, others -0.1 per tick (10s) -> Hunger -1.2/min.
+    // 1 Tick = 12 Game Mins = 0.2 Game Hours
+    // Hunger: -5 / hour => -1 / tick
+    // Hygiene: -2 / hour => -0.4 / tick
+    // Mood: -5 / hour => -1 / tick
+    
     get().updateStats({
-      hunger: -0.2,
-      hygiene: -0.1,
-      mood: -0.1,
+      hunger: -1,
+      hygiene: -0.4,
+      mood: -1,
     });
     
     // 3. Health Decay (Sickness Logic)
@@ -431,7 +437,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().updateStats({ hunger: hungerGain, mood: moodGain });
     get().addExp(2);
     get().setAnimation(resource, ANIMATION_PRIORITY.MEDIUM, false);
-    get().showDialog("真好吃！");
+    get().showDialog("哇！太好吃了！谢谢主人~");
   },
 
   clean: () => {
@@ -444,7 +450,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().updateStats({ hygiene: 100, mood: 5 });
     get().addExp(5);
     get().setAnimation(RESOURCES.CLEAN.BATH, ANIMATION_PRIORITY.MEDIUM, false);
-    get().showDialog("洗白白啦！");
+    get().showDialog("洗完澡好舒服呀！香喷喷的~");
   },
 
   play: () => {
@@ -455,7 +461,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().updateStats({ mood: 5, hunger: -5 });
     get().addExp(5);
     get().setAnimation(RESOURCES.DAILY.PLAY, ANIMATION_PRIORITY.MEDIUM, false);
-    get().showDialog("好开心呀！");
+    get().showDialog("嘻嘻！最喜欢和主人玩了！");
   },
 
   treat: (type) => {
@@ -464,7 +470,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Allow treating if dead? "Resurrection potion" needed for dead.
     // If just sick (health > 0 but low), use these.
     if (get().stats.health <= 0) {
-        get().showDialog("宠物已经离开了... (需要复活药水)");
+        get().showDialog("它已经离开我们了... (需要复活药水)");
         return;
     }
 
@@ -482,7 +488,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     get().updateStats({ health: healthGain, mood: -5 });
     get().setAnimation(resource, ANIMATION_PRIORITY.MEDIUM, false);
-    get().showDialog("感觉好多了！");
+    get().showDialog("感觉舒服多啦！谢谢主人照顾我~");
   },
   
   startWork: (duration) => {
@@ -492,8 +498,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Requirements
     if (level < 3) { get().showDialog("等级达到3级才能打工哦！"); return; }
     if (stats.intelligence < 30) { get().showDialog("智慧达到30才能打工哦！"); return; }
-    if (stats.hunger < 30) { get().showDialog("太饿了，没力气打工..."); return; }
-    if (stats.health < 40) { get().showDialog("身体不舒服，想休息..."); return; }
+    if (stats.hunger < 30) { get().showDialog("肚子饿得没力气干活了..."); return; }
+    if (stats.health < 40) { get().showDialog("不太舒服... 想休息一会儿..."); return; }
 
     set({
         workType: 'work',
@@ -502,20 +508,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     get().setAnimation(RESOURCES.EXIT.EXIT, ANIMATION_PRIORITY.MAX, false);
-    get().showDialog(`开始打工啦！(${duration}秒)`);
+    get().showDialog(`我去努力工作啦！为了我们的家！(${duration}秒)`);
   },
 
   startStudy: (duration) => {
     const { stats, coins } = get();
     if (stats.health <= 0) return;
 
-    if (stats.hunger < 30) { get().showDialog("太饿了，学不进去..."); return; }
+    if (stats.hunger < 30) { get().showDialog("饿得头晕眼花，看不进书..."); return; }
 
-    const costPerSec = 0.5; // Adjusted for seconds
-    const totalCost = Math.ceil(costPerSec * duration);
+    // Cost logic updated for Game Time
+    // Study Cost: 5 coins / game hour
+    // 10s = 2 game hours => 10 coins
+    const gameHours = (duration * 12) / 60; 
+    const totalCost = Math.ceil(5 * gameHours);
     
     if (coins < totalCost) {
-        get().showDialog(`学费不足！需要 ${totalCost} 金币`);
+        get().showDialog(`学费不够呢... (需要 ${totalCost} 金币)`);
         return;
     }
 
@@ -528,7 +537,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     get().setAnimation(RESOURCES.EXIT.EXIT, ANIMATION_PRIORITY.MAX, false);
-    get().showDialog(`开始学习啦！(${duration}秒)`);
+    get().showDialog(`我去学习啦！要变得更聪明！(${duration}秒)`);
   },
 
   cancelWork: () => {

@@ -14,9 +14,9 @@ export const DialogueBox = ({ text, onComplete, speed = 50 }: DialogueBoxProps) 
         setDisplayedText('');
         let i = 0;
         const timer = setInterval(() => {
-            if (i < text.length) {
-                setDisplayedText((prev) => prev + text.charAt(i));
-                i++;
+            i++;
+            if (i <= text.length) {
+                setDisplayedText(text.slice(0, i));
             } else {
                 clearInterval(timer);
                 if (onComplete) onComplete();

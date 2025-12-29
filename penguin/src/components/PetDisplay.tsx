@@ -64,7 +64,7 @@ export const PetDisplay = () => {
               <BookOpen size={48} className="text-purple-500" />
             )}
             <div className="text-xl font-bold text-gray-700">
-              {workType === 'work' ? '努力打工中...' : '专心学习中...'}
+              {workType === 'work' ? '为了家，努力工作中...' : '两耳不闻窗外事，专心学习中...'}
             </div>
             <div className="flex items-center gap-2 text-gray-500 font-mono text-lg font-bold bg-white/50 px-4 py-1 rounded-lg">
               <Clock size={20} />
