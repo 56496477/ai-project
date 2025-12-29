@@ -102,9 +102,9 @@ export const ActionMenu = ({ onPlayClick }: { onPlayClick?: () => void }) => {
               onClose={() => setActiveMenu(null)}
               onSelect={(id) => store.startStudy(parseInt(id))}
               items={[
-                { label: '学习 1分钟', id: '1' },
-                { label: '学习 2分钟', id: '2' },
-                { label: '学习 3分钟', id: '3' },
+                { label: '学习 10秒', id: '10' },
+                { label: '学习 20秒', id: '20' },
+                { label: '学习 30秒', id: '30' },
               ]}
             />
           )}
@@ -118,9 +118,9 @@ export const ActionMenu = ({ onPlayClick }: { onPlayClick?: () => void }) => {
               onClose={() => setActiveMenu(null)}
               onSelect={(id) => store.startWork(parseInt(id))}
               items={[
-                { label: '打工 1分钟', id: '1' },
-                { label: '打工 2分钟', id: '2' },
-                { label: '打工 3分钟', id: '3' },
+                { label: '打工 10秒', id: '10' },
+                { label: '打工 20秒', id: '20' },
+                { label: '打工 30秒', id: '30' },
               ]}
             />
           )}

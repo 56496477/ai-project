@@ -267,42 +267,29 @@ export const useGameStore = create<GameState>((set, get) => ({
       const now = Date.now();
       if (now >= workEndTime) {
         // Work Finished
-        get().cancelWork(); // Reuse cancelWork logic to settle? No, need specific settle logic.
-        // Actually, let's implement a settle function or do it here.
-        // We'll do it here to keep it simple or call a helper.
-        // Let's call a private helper or just do it.
         
-        const duration = get().workDuration; // minutes
+        const duration = get().workDuration; // seconds now
         let earnedCoins = 0;
         let earnedExp = 0;
         let gainedIntel = 0;
         let hungerCost = 0;
         let moodCost = 0;
 
+        // Scaling for seconds: 
+        // Original: 10 coins/min => ~0.16 coins/sec
+        // Let's make it more rewarding for short duration: 0.5 coins/sec
+        
         if (workType === 'work') {
-           // Work: Base 10/min. Bonus: * (1 + IQ*0.01)
-           const baseWage = 10;
+           const baseWage = 0.5; // per second
            earnedCoins = Math.floor(baseWage * duration * (1 + stats.intelligence * 0.01));
-           hungerCost = 0.5 * duration;
-           moodCost = 0.5 * duration;
-           earnedExp = 15; // Fixed or per minute? Design says "AddExp(15)" in old code, new doc says per minute?
-           // Doc: "Work... Coins... Consumes Hunger/Mood"
-           // Let's stick to the doc:
-           // Work: Coins = 10 * duration * (1 + IQ/100). Hunger -0.5*min, Mood -0.5*min.
+           hungerCost = 0.05 * duration;
+           moodCost = 0.05 * duration;
+           earnedExp = Math.ceil(0.5 * duration); 
         } else {
-           // Study: Cost -2/min. IQ +1/min. EXP +2/min. Hunger -0.8/min.
-           // Cost was already paid upfront? Or pay now? 
-           // Usually better to pay upfront or fail if no money?
-           // Let's assume cost is per minute, maybe paid at end or start. 
-           // Design says "Fee: -2 coins/min". Let's deduct at end or during? 
-           // Let's deduct at start to be safe, or end. Let's do end for simplicity, allowing debt? 
-           // Better: Deduct at start. 
-           
-           // Actually, let's look at startStudy implementation for cost.
-           
-           gainedIntel = 1 * duration;
-           earnedExp = 2 * duration;
-           hungerCost = 0.8 * duration;
+           // Study
+           gainedIntel = Math.ceil(0.1 * duration);
+           earnedExp = Math.ceil(0.2 * duration);
+           hungerCost = 0.08 * duration;
         }
 
         get().addCoins(earnedCoins);
@@ -320,6 +307,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         const returnAnims = [RESOURCES.EXIT.ENTER, RESOURCES.EXIT.ENTER2, RESOURCES.EXIT.ENTER3];
         const randomReturnAnim = returnAnims[Math.floor(Math.random() * returnAnims.length)];
         
+        // Force update animation state to ensure it plays
+        // Reset priority first to ensure MAX priority from work/study doesn't block
+        // Actually, setAnimation with HIGH should override if current is MAX but workEndTime is now 0?
+        // Wait, if currentAnim is HIDDEN (MAX priority), and we set HIGH, it might not override if logic prevents it?
+        // Let's check setAnimation logic or just force it.
+        // Usually setAnimation checks priority. 
+        // We need to ensure the HIDDEN state is cleared.
+        
+        set({ animPriority: ANIMATION_PRIORITY.IDLE }); // Lower priority to allow new anim
         get().setAnimation(randomReturnAnim, ANIMATION_PRIORITY.HIGH, false);
         
         if (workType === 'work') {
@@ -328,10 +324,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             get().showDialog(`学习结束！智力 +${gainedIntel}`);
         }
         
-        return; // Skip normal decay for this tick as we applied bulk decay? 
-        // Or just let normal decay happen too? 
-        // Doc says "Consumes...". This usually implies replacement of normal idle decay.
-        // So we return here.
+        return; 
       } else {
         // Still working
         // Show countdown in dialog maybe?
@@ -505,11 +498,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
         workType: 'work',
         workDuration: duration,
-        workEndTime: Date.now() + duration * 60 * 1000
+        workEndTime: Date.now() + duration * 1000
     });
 
     get().setAnimation(RESOURCES.EXIT.EXIT, ANIMATION_PRIORITY.MAX, false);
-    get().showDialog(`开始打工啦！(${duration}分钟)`);
+    get().showDialog(`开始打工啦！(${duration}秒)`);
   },
 
   startStudy: (duration) => {
@@ -518,8 +511,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (stats.hunger < 30) { get().showDialog("太饿了，学不进去..."); return; }
 
-    const costPerMin = 2;
-    const totalCost = costPerMin * duration;
+    const costPerSec = 0.5; // Adjusted for seconds
+    const totalCost = Math.ceil(costPerSec * duration);
     
     if (coins < totalCost) {
         get().showDialog(`学费不足！需要 ${totalCost} 金币`);
@@ -531,11 +524,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
         workType: 'study',
         workDuration: duration,
-        workEndTime: Date.now() + duration * 60 * 1000
+        workEndTime: Date.now() + duration * 1000
     });
 
     get().setAnimation(RESOURCES.EXIT.EXIT, ANIMATION_PRIORITY.MAX, false);
-    get().showDialog(`开始学习啦！(${duration}分钟)`);
+    get().showDialog(`开始学习啦！(${duration}秒)`);
   },
 
   cancelWork: () => {
